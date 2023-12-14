@@ -1,0 +1,209 @@
+---
+title: "Exploring the relationship between PHQ-9 scores and various factors: A secondary data analysis (PSY4802)"
+author: "Gracie Meyer"
+output: html_document
+date: "2023-12-10"
+---
+
+```{r excel, include=FALSE}
+library(readxl)
+effectsOfDepression<- read_excel("~/Desktop/Secondary Data Analysis/NEWEffects of Depression  Anxiety on Academic Performance among the students (respuestas).xlsx")
+```
+
+```{r addPt, include=FALSE}
+library(tidyverse)
+
+effectsOfDepression<- effectsOfDepression %>% mutate(Respondent = row_number()) %>% select(Respondent, everything())
+```
+
+```{r 73, include=FALSE}
+effectsOfDepression<- effectsOfDepression %>% filter(Respondent != "73")
+effectsOfDepression
+```
+
+```{r phq9Scores, include=FALSE}
+PHQ9Scores<- effectsOfDepression %>% select(1, 5:13)
+PHQ9Scores
+```
+
+```{r rowSum, include=FALSE}
+PHQ9Scores<- PHQ9Scores %>% mutate(summedPHQ9Scores = rowSums(select(., 2:10,)))
+PHQ9Scores
+```
+
+```{r relevelPHQ9, include=FALSE}
+PHQ9Scores<- PHQ9Scores %>% mutate(depressionLevel = case_when(summedPHQ9Scores >= 26 & summedPHQ9Scores <= 36 ~ "Severe depression", summedPHQ9Scores >= 20 & summedPHQ9Scores <= 25 ~ "Moderately severe depression", summedPHQ9Scores >= 13 & summedPHQ9Scores <= 19 ~ "Moderate depression", summedPHQ9Scores >= 6 & summedPHQ9Scores <= 12 ~ "Mild depression", summedPHQ9Scores >= 1 & summedPHQ9Scores <= 5 ~ "Minimal depression", summedPHQ9Scores == 0 ~ "No depression"))
+PHQ9Scores
+```
+
+```{r leftJoin, include=FALSE}
+effectsOfDepression<- effectsOfDepression %>% left_join(select(PHQ9Scores, Respondent, summedPHQ9Scores, depressionLevel), by = "Respondent")
+```
+
+```{r gpaAsNum, include=FALSE}
+effectsOfDepression$GPA<- as.numeric(effectsOfDepression$GPA)
+```
+
+```{r relevelJob, include=FALSE}
+effectsOfDepression$jobStatus<- factor(effectsOfDepression$jobStatus, levels = c("No", "Part time", "Full time", "Full Time"), labels = c("1", "2", "3", "3"))
+```
+
+```{r relevelSocial, include=FALSE}
+effectsOfDepression$socialMediaHours<- factor(effectsOfDepression$socialMediaHours, levels = c("Not Applicable", "1 - 2 Hours", "2 - 4 Hours", "More than 4 Hours"), labels = c("1", "2", "3", "4"))
+```
+
+```{r gpaCorrelation, include=FALSE}
+corGPA<- cor.test(effectsOfDepression$summedPHQ9Scores, effectsOfDepression$GPA, alternative = "less")
+corGPA
+```
+```{r ggplot2, include=FALSE}
+library(ggplot2)
+```
+```{r gpaViolin, include=FALSE}
+#graphGPA<- graphGPA2<- 
+graphGP<-ggplot(effectsOfDepression, aes(depressionLevel, GPA, fill=depressionLevel))+ geom_violin()+ scale_fill_manual(name=NULL, values= c("#a37ab4", "#d485b7", "#f0b1c1", "#abbbd6"))+ ylab("GPA")+ xlab("Depression Severity")+ ggtitle(expression(italic("Grade Point Average")))+ theme_classic()+ theme(legend.position = "bottom", strip.background = element_blank(), strip.placement = "outside", text = element_text(family = "Times New Roman", size = 7), axis.text.x = element_blank(), legend.box.background = element_rect(color = "black"))
+```
+```{r gpaSave, include=FALSE}
+ggsave("graphGP.tiff", width=10, height=10, units="in", dpi=300)
+```
+
+```{r jobSocialAsNum, include=FALSE}
+effectsOfDepression$socialMediaHours<- as.numeric(effectsOfDepression$socialMediaHours)
+
+effectsOfDepression$jobStatus<- as.numeric(effectsOfDepression$jobStatus)
+```
+
+```{r socialCorrelation, include=FALSE}
+corSocial<- cor(effectsOfDepression$summedPHQ9Scores, effectsOfDepression$socialMediaHours, method="spearman")
+corSocial
+
+corSocial2<- cor.test(effectsOfDepression$summedPHQ9Scores, effectsOfDepression$socialMediaHours, method="spearman")
+corSocial2
+```
+
+```{r jobCorrelation, include=FALSE}
+corJob<- cor(effectsOfDepression$summedPHQ9Scores, effectsOfDepression$jobStatus, method="spearman")
+corJob
+
+corJob2<- cor.test(effectsOfDepression$summedPHQ9Scores, effectsOfDepression$jobStatus, method="spearman")
+corJob2
+```
+
+```{r corSumm, include=FALSE}
+corSum <- data.frame(`Relationship` = c("PHQ-9 & GPA", "PHQ-9 & Social Media", "PHQ-9 & Job Status"), r = c(corGPA$estimate, corSocial, corJob), p_value = c(corGPA$p.value, corSocial2$p.value, corJob2$p.value))
+corSum
+```
+
+```{r jobSocialAsFactor, include=FALSE}
+effectsOfDepression$socialMediaHours<- as.factor(effectsOfDepression$socialMediaHours)
+
+effectsOfDepression$jobStatus<- as.factor(effectsOfDepression$jobStatus)
+```
+
+```{r reRelevelJob, include=FALSE}
+effectsOfDepression$jobStatus<- factor(effectsOfDepression$jobStatus, levels = c("1", "2", "3"), labels = c("Unemployed", "Part-Time", "Full-Time"))
+```
+
+```{r reRelevelSocial, include=FALSE}
+effectsOfDepression$socialMediaHours<- factor(effectsOfDepression$socialMediaHours, levels = c("1", "2", "3", "4"), labels = c("Not Applicable", "1 - 2 Hours", "2 - 4 Hours", "More Than 4 Hours"))
+```
+
+```{r socialLabels, include=FALSE}
+socialLabels<- c("Not Applicable", "1 - 2 Hours", "2 - 4 Hours", "More Than 4 Hours")
+```
+```{r viridis, include=FALSE}
+library(viridis)
+```
+
+```{r socialBar, include=FALSE}
+#graphSocial<- graphSocial2<- 
+ggplot(effectsOfDepression, aes(depressionLevel, fill=depressionLevel))+ 
+geom_bar()+ scale_y_continuous(breaks= seq(0, 60, by= 10))+ facet_grid(~socialMediaHours, switch = "both")+ scale_fill_manual(name=NULL, values= c("#a37ab4", "#d485b7", "#f0b1c1", "#abbbd6"))+ ylab("Response Count")+ xlab("Depression Severity")+ ggtitle(expression(italic("Social Media Usage")))+ theme_classic()+ theme(legend.position = "none", strip.background = element_blank(), strip.placement = "outside", text = element_text(family = "Times New Roman", size = 16), axis.text.x = element_blank(), legend.box.background = element_rect(color = "black")) 
+```
+```{r saveSocial, include=FALSE}
+#ggsave("graphSocial2.tiff", width=7, height=4, units="in", dpi=300)
+```
+
+```{r jobBar, include=FALSE}
+#graphJob<- graphJob2<- 
+ggplot(effectsOfDepression, aes(depressionLevel, fill=depressionLevel))+ geom_bar()+ scale_y_continuous(breaks= seq(0, 60, by= 10))+ facet_grid(~jobStatus, switch = "both")+ scale_fill_manual(name=NULL, values= c("#a37ab4", "#d485b7", "#f0b1c1", "#abbbd6"))+ ylab("Response Count")+ xlab("Depression Severity")+ ggtitle(expression(italic("Job Status")))+ theme_classic()+ theme(legend.position = "none", strip.background = element_blank(), strip.placement = "outside", text = element_text(family = "Times New Roman", size = 16), axis.text.x = element_blank(), legend.box.background = element_rect(color = "black"))
+```
+```{r saveJob, include=FALSE}
+#ggsave("graphJob2.tiff", width=4, height=4, units="in", dpi=300)
+```
+
+```{r mulReg, include=FALSE}
+depressionEffectsModel<- lm(summedPHQ9Scores~GPA *jobStatus *socialMediaHours, data=effectsOfDepression) 
+summary(depressionEffectsModel)
+```
+
+```{r categoricalGPA, include=FALSE}
+effectsOfDepression<- effectsOfDepression %>%
+  mutate(GPA2 = cut(GPA, breaks = c(-Inf, 1.99, 2.99, 3.99, Inf), labels = c("1", "2", "3", "4")))
+```
+```{r barGraphGPA, include=FALSE} 
+#barGraphGPA<- 
+ggplot(effectsOfDepression, aes(depressionLevel, fill=depressionLevel)) +
+geom_bar()+ facet_grid(~GPA2, switch = "both")+ scale_fill_manual(name=NULL, values= c("#a37ab4", "#d485b7", "#f0b1c1", "#abbbd6"))+ ylab("Response Count")+ xlab("Depression Severity")+ ggtitle(expression(italic("Effect of Depression Severity on Categorical GPA")))+ theme_classic()+ theme(legend.position = c(0.06, 0.5), legend.justification = c("left"), legend.box.just = "left", strip.background = element_blank(), strip.placement = "outside", text = element_text(family = "Times New Roman", size = 16), axis.text.x = element_blank(), legend.box.background = element_rect(color = "black"))
+```
+```{r saveBarGPA, include=FALSE}
+#ggsave("barGraphGPA.tiff", width=3, height=3, units="in", dpi=300)
+```
+
+
+#### Results
+
+In this secondary data analysis, data from `r nrow(effectsOfDepression)` respondents were examined to explore the relationships between Patient Health Questionnaire (PHQ-9) scores, GPA, social media usage, and job status. One dataset was utilized: “Depression and Academic Performance of Students,” from Kaggle. This dataset includes responses to the PHQ-9 as well as questions about academic performance, time spent on social media, and job status. Descriptive statistics can be seen in table 1 and table 2. 
+```{r jobSocialAsNum2, include=FALSE}
+effectsOfDepression$socialMediaHours<- as.numeric(effectsOfDepression$socialMediaHours)
+
+effectsOfDepression$jobStatus<- as.numeric(effectsOfDepression$jobStatus)
+```
+```{r sumGPA, include=FALSE}
+library(Rmisc)
+sumGPA<- summarySE(effectsOfDepression, measurevar = "GPA", groupvars = "depressionLevel")
+sumGPA
+```
+```{r sumSocial, include=FALSE}
+sumSocial<- effectsOfDepression %>% group_by(socialMediaHours) %>% summarise(socialMean = mean(summedPHQ9Scores), sd = sd(summedPHQ9Scores), se = sd(summedPHQ9Scores)/sqrt(351))
+sumSocial
+```
+```{r sumJob, include=FALSE}
+sumJob <- effectsOfDepression %>% group_by(jobStatus) %>% summarise(jobMean = mean(summedPHQ9Scores), sd = sd(summedPHQ9Scores), se = sd(summedPHQ9Scores)/sqrt(351))
+sumJob
+```
+```{r sumStat, include=FALSE}
+summaryStats<- cbind.data.frame(sumSocial, sumJob)
+summaryStats
+```
+```{r libraryKn, include=FALSE}
+library(knitr)
+```
+```{r summaryStats, echo=FALSE}
+kable(sumGPA, caption = "Table 1")
+kable(summaryStats,caption ="Table 2")
+```
+
+
+
+Correlation tests were conducted to examine the relationships between depression severity, GPA, social media usage.
+
+A Pearson correlation coefficient was run to assess the linear relationship between summed PHQ-9 score and GPA.
+
+A Spearman's rank-order correlation was run to examine the relationship between depression severity and social media usage, and job status with the former. 
+
+```{r, echo=FALSE}
+kable(corSum)
+```
+Graphs such as `geom_violin()` for GPA and `geom_bar()` for social media usage and job status were created to view the distributions across different levels of depression severity.
+
+```{r ggplotGPA, echo=FALSE}
+ggplot(effectsOfDepression, aes(depressionLevel, GPA, fill=depressionLevel))+ geom_violin()+ scale_fill_manual(name=NULL, values= c("#a37ab4", "#d485b7", "#f0b1c1", "#abbbd6"))+ ylab("GPA")+ xlab("Depression Severity")+ ggtitle(expression(italic("Grade Point Average")))+ theme_classic()+ theme(legend.position = "bottom", strip.background = element_blank(), strip.placement = "outside", text = element_text(family = "Times New Roman", size = 12), axis.text.x = element_blank(), legend.box.background = element_rect(color = "black")) 
+```
+```{r ggplotSocial, echo=FALSE}
+ggplot(effectsOfDepression, aes(depressionLevel, fill=depressionLevel))+ 
+geom_bar()+ scale_y_continuous(breaks= seq(0, 60, by= 10))+ facet_grid(~socialMediaHours, switch = "both")+ scale_fill_manual(name=NULL, values= c("#a37ab4", "#d485b7", "#f0b1c1", "#abbbd6"))+ ylab("Response Count")+ xlab("Depression Severity")+ ggtitle(expression(italic("Social Media Usage")))+ theme_classic()+ theme(legend.position = c(0.2, 0.8), legend.justification = c("left"), legend.box.just = "left", strip.background = element_blank(), strip.placement = "outside", text = element_text(family = "Times New Roman", size = 12), axis.text.x = element_blank(), legend.box.background = element_rect(color = "black"))  
+```
+```{r ggplotJob, echo=FALSE}
+ggplot(effectsOfDepression, aes(depressionLevel, fill=depressionLevel))+ geom_bar()+ scale_y_continuous(breaks= seq(0, 60, by= 10))+ facet_grid(~jobStatus, switch = "both")+ scale_fill_manual(name=NULL, values= c("#a37ab4", "#d485b7", "#f0b1c1", "#abbbd6"))+ ylab("Response Count")+ xlab("Depression Severity")+ ggtitle(expression(italic("Job Status")))+ theme_classic()+ theme(legend.position = c(0.2, 0.8), legend.justification = c("left"), legend.box.just = "left", strip.background = element_blank(), strip.placement = "outside", text = element_text(family = "Times New Roman", size = 12), axis.text.x = element_blank(), legend.box.background = element_rect(color = "black")) 
+```
